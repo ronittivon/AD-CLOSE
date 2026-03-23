@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>אפליקציה אינטראקטיבית לעקומת AD – משק סגור</title>
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --ink:#18202a;
+    --muted:#5b6472;
+    --accent:#1f6feb;
+    --accent2:#e55353;
+    --grid:#d7dce5;
+    --ok:#1a7f37;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--ink);}
+  .wrap{max-width:1400px; margin:0 auto; padding:24px;}
+  h1{margin:0 0 8px; font-size:32px}
+  .subtitle{color:var(--muted); margin-bottom:20px; line-height:1.5}
+  .layout{display:grid; grid-template-columns:360px 1fr; gap:20px;}
+  .card{background:var(--card); border:1px solid #e2e6ee; border-radius:18px; padding:18px; box-shadow:0 8px 24px rgba(18,38,63,.06);}
+  .controls h2,.main h2{margin:0 0 12px; font-size:22px}
+  .control{margin:14px 0 18px; padding-bottom:12px; border-bottom:1px solid #edf0f5;}
+  .control:last-child{border-bottom:none}
+  label{display:flex; justify-content:space-between; align-items:center; font-weight:bold; margin-bottom:8px}
+  .value{color:var(--accent); background:#eef4ff; padding:4px 8px; border-radius:999px; font-weight:bold; min-width:72px; text-align:center;}
+  input[type="range"]{width:100%}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .mini{background:#fafbfe; border:1px solid #edf0f5; border-radius:14px; padding:12px;}
+  .mini h3{margin:0 0 8px; font-size:16px}
+  .formula{background:#f8fbff; border:1px solid #dce9ff; color:#11325e; border-radius:14px; padding:14px; line-height:1.8; font-size:18px; margin-top:14px;}
+  .formula code{background:#fff; padding:2px 6px; border-radius:8px; border:1px solid #e8eef8; font-family:"Courier New", monospace; font-size:17px;}
+  .note{color:var(--muted); line-height:1.7; font-size:14px;}
+  .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+  button{border:none; border-radius:12px; padding:10px 14px; cursor:pointer; font-weight:bold;}
+  .primary{background:var(--accent); color:white}
+  .secondary{background:#eef3fb; color:#1b2a41}
+  .success{background:#e9f8ee; color:var(--ok)}
+  .chart-card{padding:16px}
+  canvas{width:100%; height:520px; display:block; background:white; border-radius:14px}
+  table{width:100%; border-collapse:collapse; margin-top:10px; font-size:14px;}
+  th,td{padding:8px 6px; border-bottom:1px solid #edf0f5; text-align:center;}
+  th{background:#fafbfe}
+  .legend{display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin:8px 0 14px; color:var(--muted); font-size:14px;}
+  .swatch{display:inline-block; width:18px; height:4px; border-radius:999px; vertical-align:middle; margin-left:6px}
+  .baseline{background:var(--accent2)}
+  .current{background:var(--accent)}
+  .answer{background:#fbfcff; border:1px solid #edf1f8; border-radius:14px; padding:14px; margin-top:14px; line-height:1.8;}
+  .footer{margin-top:16px; color:var(--muted); font-size:13px;}
+  @media (max-width:980px){ .layout{grid-template-columns:1fr} canvas{height:420px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>אפליקציה אינטראקטיבית לבניית עקומת AD</h1>
+  <div class="subtitle">
+    משק סגור. האפליקציה מחשבת את עקומת הביקוש המצרפי מתוך <b>שוק המוצרים</b> ו<b>שוק הכסף</b>,
+    מציגה את הפונקציה של <b>Y כתלות ב־P</b>, ומאפשרת לשנות בו־זמנית את כל הגדלים האקסוגניים
+    כדי לראות כיצד עקומת AD זזה.
+  </div>
+
+  <div class="layout">
+    <div class="card controls">
+      <h2>פרמטרים אקסוגניים</h2>
+
+      <div class="control">
+        <label><span>b – הנטייה השולית לצרוך</span><span class="value" id="bVal"></span></label>
+        <input id="b" type="range" min="0.10" max="0.90" step="0.01" value="0.60">
+      </div>
+
+      <div class="control">
+        <label><span>G – הוצאה ממשלתית</span><span class="value" id="gVal"></span></label>
+        <input id="g" type="range" min="0" max="50" step="1" value="10">
+      </div>
+
+      <div class="control">
+        <label><span>T – מסים קבועים</span><span class="value" id="tVal"></span></label>
+        <input id="t" type="range" min="0" max="50" step="1" value="0">
+      </div>
+
+      <div class="control">
+        <label><span>MPK<sub>e</sub> – תפוקה שולית צפויה של ההון</span><span class="value" id="mpkeVal"></span></label>
+        <input id="mpke" type="range" min="0" max="12" step="0.1" value="4">
+      </div>
+
+      <div class="control">
+        <label><span>M – היצע כסף נומינלי</span><span class="value" id="mVal"></span></label>
+        <input id="m" type="range" min="20" max="200" step="1" value="100">
+      </div>
+
+      <div class="control">
+        <label><span>P* – רמת מחירים נבחרת לחישוב נקודתי</span><span class="value" id="pStarVal"></span></label>
+        <input id="pStar" type="range" min="0.5" max="20" step="0.1" value="5">
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="resetBtn">איפוס לערכי הבסיס</button>
+        <button class="secondary" id="toggleBaselineBtn">הסתרת/הצגת עקומת הבסיס</button>
+        <button class="success" id="copyEqBtn">העתקת המשוואה הנוכחית</button>
+      </div>
+
+      <div class="formula" id="equationBox"></div>
+
+      <div class="answer" id="selectedPointBox"></div>
+
+      <div class="footer">
+        ערכי הבסיס:<br>
+        <code>(M/P)<sup>D</sup> = 2Y - 0.5r</code><br>
+        <code>C = b(Y - T)</code><br>
+        <code>I = 10·MPK<sub>e</sub> - 0.3r</code>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="card chart-card">
+        <h2>גרף עקומת AD במערכת הצירים (Y, P)</h2>
+        <div class="legend">
+          <span><span class="swatch baseline"></span>עקומת בסיס</span>
+          <span><span class="swatch current"></span>עקומה נוכחית לאחר השינויים</span>
+        </div>
+        <canvas id="chart" width="940" height="520"></canvas>
+        <div class="note">
+          הציר האופקי: תוצר מבוקש <b>Y</b> &nbsp;|&nbsp; הציר האנכי: רמת מחירים <b>P</b><br>
+          הסקאלה האופקית קבועה, כך שהזזות ימינה/שמאלה נראות נכון גם כאשר משנים את הפרמטרים.<br>
+          אפשר לבצע גם <b>שני שינויים יחד או יותר</b> — למשל להגדיל גם את <b>G</b> וגם את <b>M</b>, או לשנות במקביל את <b>b</b> ואת <b>T</b>, ולראות מיד כיצד AD מושפעת.
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:20px">
+        <div class="card mini">
+          <h3>שלבי הפתרון האלגברי</h3>
+          <div class="note" id="derivationBox"></div>
+        </div>
+        <div class="card mini">
+          <h3>טבלת נקודות על העקומה הנוכחית</h3>
+          <table id="pointsTable">
+            <thead><tr><th>P</th><th>Y(P)</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = { b:0.60, G:10, T:0, MPKe:4, M:100, pStar:5 };
+let showBaseline = true;
+
+function val(id){ return parseFloat(document.getElementById(id).value); }
+function fmt(x, d=2){
+  return Number(x).toLocaleString('he-IL', {maximumFractionDigits:d, minimumFractionDigits:d});
+}
+function updateBadges(){
+  document.getElementById("bVal").textContent = fmt(val("b"),2);
+  document.getElementById("gVal").textContent = fmt(val("g"),0);
+  document.getElementById("tVal").textContent = fmt(val("t"),0);
+  document.getElementById("mpkeVal").textContent = fmt(val("mpke"),1);
+  document.getElementById("mVal").textContent = fmt(val("m"),0);
+  document.getElementById("pStarVal").textContent = fmt(val("pStar"),1);
+}
+function coeffs(params){
+  const b = params.b, G = params.G, T = params.T, MPKe = params.MPKe, M = params.M;
+  const denom = 2.2 - b;
+  const A = (-b*T + 10*MPKe + G) / denom;
+  const B = (0.6 * M) / denom;
+  return {A, B, denom};
+}
+function getParams(current=true){
+  return current
+    ? { b:val("b"), G:val("g"), T:val("t"), MPKe:val("mpke"), M:val("m"), pStar:val("pStar") }
+    : { b:BASE.b, G:BASE.G, T:BASE.T, MPKe:BASE.MPKe, M:BASE.M, pStar:BASE.pStar };
+}
+function YofP(P, params){
+  const c = coeffs(params);
+  return c.A + c.B / P;
+}
+function rOfP(P, params){
+  const Y = YofP(P, params);
+  return 4*Y - 2*(params.M/P);
+}
+function drawChart(){
+  const canvas = document.getElementById("chart");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const margin = {top:20,right:24,bottom:56,left:76};
+  const plotW = W - margin.left - margin.right;
+  const plotH = H - margin.top - margin.bottom;
+
+  const pMin = 0.5, pMax = 20;
+  const cur = getParams(true);
+  const base = getParams(false);
+
+  const curves = [];
+  for(let i=0;i<=280;i++){
+    const P = pMin + (pMax-pMin)*i/280;
+    curves.push({P, yCur:YofP(P,cur), yBase:YofP(P,base)});
+  }
+
+  // חשוב: טווח אופקי קבוע כדי שהזזות ימינה/שמאלה לא ייטשטשו בגלל שינוי אוטומטי של הסקאלה
+  // אם הסקאלה זזה יחד עם העקומה, המשתמש עלול לקבל רושם שגוי שעקומה זזה שמאלה.
+  const xMin = 0;
+  const xMax = 120;
+
+  const xScale = x => margin.left + (x - xMin) / (xMax - xMin) * plotW;
+  const yScale = p => margin.top + plotH - (p - pMin)/(pMax - pMin) * plotH;
+
+  ctx.strokeStyle = "#d7dce5";
+  ctx.lineWidth = 1;
+  ctx.font = "13px Arial";
+  ctx.fillStyle = "#5b6472";
+  for(let i=0;i<=5;i++){
+    const p = pMin + i*(pMax-pMin)/5;
+    const y = yScale(p);
+    ctx.beginPath(); ctx.moveTo(margin.left,y); ctx.lineTo(W-margin.right,y); ctx.stroke();
+    ctx.fillText(fmt(p,1), 18, y+4);
+  }
+  for(let i=0;i<=6;i++){
+    const x = xMin + i*(xMax-xMin)/6;
+    const xx = xScale(x);
+    ctx.beginPath(); ctx.moveTo(xx,margin.top); ctx.lineTo(xx,H-margin.bottom); ctx.stroke();
+    ctx.fillText(fmt(x,1), xx-16, H-margin.bottom+24);
+  }
+
+  ctx.strokeStyle = "#18202a";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, margin.top);
+  ctx.lineTo(margin.left, H-margin.bottom);
+  ctx.lineTo(W-margin.right, H-margin.bottom);
+  ctx.stroke();
+
+  ctx.font = "bold 16px Arial";
+  ctx.fillStyle = "#18202a";
+  ctx.fillText("P", 36, margin.top+4);
+  ctx.fillText("Y", W-margin.right-6, H-margin.bottom+42);
+
+  if(showBaseline){
+    ctx.strokeStyle = "#e55353";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    curves.forEach((d,i)=>{
+      const xx = xScale(d.yBase), yy = yScale(d.P);
+      if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+    });
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = "#1f6feb";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  curves.forEach((d,i)=>{
+    const xx = xScale(d.yCur), yy = yScale(d.P);
+    if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+  });
+  ctx.stroke();
+
+  const pStar = cur.pStar;
+  const yStar = YofP(pStar, cur);
+  const xx = xScale(yStar), yy = yScale(pStar);
+  ctx.fillStyle = "#1f6feb";
+  ctx.beginPath(); ctx.arc(xx, yy, 5, 0, Math.PI*2); ctx.fill();
+
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle = "#7aa7f8";
+  ctx.beginPath(); ctx.moveTo(xx,yy); ctx.lineTo(xx,H-margin.bottom); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(margin.left,yy); ctx.lineTo(xx,yy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.font = "bold 14px Arial";
+  ctx.fillStyle = "#11325e";
+  ctx.fillText("P="+fmt(pStar,1)+", Y="+fmt(yStar,2), Math.min(xx+12, W-220), Math.max(yy-10, 26));
+}
+function refreshMath(){
+  const cur = getParams(true);
+  const c = coeffs(cur);
+
+  document.getElementById("equationBox").innerHTML =
+    "<div><b>עקומת AD הנוכחית:</b></div>" +
+    "<code>Y(P) = " + fmt(c.A,3) + " + " + fmt(c.B,3) + "/P</code>" +
+    "<div style='margin-top:8px' class='note'>" +
+    "נוסחה כללית: <code>Y(P)=(-bT + 10MPK<sub>e</sub> + G)/(2.2-b) + [0.6M/(2.2-b)]·(1/P)</code>" +
+    "</div>";
+
+  document.getElementById("derivationBox").innerHTML =
+    "1. שוק המוצרים: <code>Y = b(Y-T) + 10MPK<sub>e</sub> - 0.3r + G</code><br>" +
+    "2. שוק הכסף: <code>M/P = 2Y - 0.5r</code> ולכן <code>r = 4Y - 2M/P</code><br>" +
+    "3. מציבים את <code>r</code> בשוק המוצרים ומקבלים:<br>" +
+    "<code>(2.2 - b)Y = -bT + 10MPK<sub>e</sub> + G + 0.6·M/P</code><br>" +
+    "4. לכן:<br>" +
+    "<code>Y(P) = A + B/P</code>, כאשר<br>" +
+    "<code>A = (-bT + 10MPK<sub>e</sub> + G)/(2.2-b)</code><br>" +
+    "<code>B = 0.6M/(2.2-b)</code>";
+
+  const y0 = YofP(cur.pStar, cur);
+  const r0 = rOfP(cur.pStar, cur);
+  document.getElementById("selectedPointBox").innerHTML =
+    "<b>חישוב נקודתי עבור רמת המחירים שנבחרה:</b><br>" +
+    "אם <code>P = " + fmt(cur.pStar,1) + "</code>, אז:" +
+    "<br><code>Y = " + fmt(y0,3) + "</code>" +
+    "<br><code>r = " + fmt(r0,3) + "</code>";
+
+  const tbody = document.querySelector("#pointsTable tbody");
+  tbody.innerHTML = "";
+  [1,2,3,4,5,7.5,10,15,20].forEach(function(p){
+    const y = YofP(p, cur);
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+fmt(p,1)+"</td><td>"+fmt(y,3)+"</td>";
+    tbody.appendChild(tr);
+  });
+}
+function updateAll(){ updateBadges(); refreshMath(); drawChart(); }
+
+["b","g","t","mpke","m","pStar"].forEach(function(id){
+  document.getElementById(id).addEventListener("input", updateAll);
+});
+
+document.getElementById("resetBtn").addEventListener("click", function(){
+  document.getElementById("b").value = BASE.b;
+  document.getElementById("g").value = BASE.G;
+  document.getElementById("t").value = BASE.T;
+  document.getElementById("mpke").value = BASE.MPKe;
+  document.getElementById("m").value = BASE.M;
+  document.getElementById("pStar").value = BASE.pStar;
+  updateAll();
+});
+
+document.getElementById("toggleBaselineBtn").addEventListener("click", function(){
+  showBaseline = !showBaseline;
+  drawChart();
+});
+
+document.getElementById("copyEqBtn").addEventListener("click", async function(){
+  const cur = getParams(true);
+  const c = coeffs(cur);
+  const text = "Y(P) = " + c.A.toFixed(3) + " + " + c.B.toFixed(3) + "/P";
+  try{
+    await navigator.clipboard.writeText(text);
+    alert("המשוואה הועתקה ללוח.");
+  }catch(e){
+    alert(text);
+  }
+});
+
+updateAll();
+</script>
+</body>
+</html>
